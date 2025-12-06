@@ -5,13 +5,13 @@ from sklearn.preprocessing import StandardScaler
 import math
 from sklearn.cluster import KMeans
 from sklearn import metrics
-from sklearn.pipeline import Pipeline
 import joblib
-import os
+from pathlib import Path
 
 elev_file = 'data/track_with_elevation.csv'
 device_track = 'data/device_track_1.csv'
 emergency_file = 'data/emergency_events.csv'
+output_dir = "output"
 
 df_elev = pd.read_csv(elev_file)
 df_track = pd.read_csv(device_track)
@@ -85,7 +85,7 @@ def apply_segment(df_seg, df):
         lambda row: closest_segment(row["latitude"], row["longitude"]), axis=1
     )
 
-def generate_feature(df_seg, df_track = df_track, df_emergency = df_emergency):
+def generate_density_offtrack(df_seg, df_track = df_track):
     # density and offtrack rate
     seg_stats = df_track.groupby("segment_id").agg({
         "device_id": "count",
@@ -102,6 +102,9 @@ def generate_feature(df_seg, df_track = df_track, df_emergency = df_emergency):
         "offtrack_rate": 0
     }, inplace=True)
 
+    return df_seg
+
+def generate_stuck_sos_rate(df_seg, df_emergency = df_emergency):
     # fungsi untuk menghitung stuck rate dan sos rate
     def rate(count, density):
         if (count == 0):
@@ -150,18 +153,15 @@ def generate_feature(df_seg, df_track = df_track, df_emergency = df_emergency):
 def kmeans_clustering(segments):
     features = segments[['slope', 'curvature', 'density', 'offtrack_rate', 'stuck_rate', 'sos_rate']]
 
-    pipeline = Pipeline([
-        ('scaler', StandardScaler()),
-        ('kmeans', KMeans(n_clusters=3, max_iter=100, random_state=42))
-    ])
+    scaler = StandardScaler()
+    X = scaler.fit_transform(features)
     
-    pipeline.fit(features)
+    kmeans = KMeans(n_clusters=3, max_iter=100, random_state=42)
+    kmeans.fit(X)
 
-    y_kmeans = pipeline.predict(features)
+    segments["cluster"] = kmeans.labels_
 
-    segments["cluster"] = y_kmeans
-
-    labels = pipeline.named_steps['kmeans'].labels_
+    labels = kmeans.labels_
     
     sc = metrics.silhouette_score(features, labels)
     db = metrics.davies_bouldin_score(features, labels)
@@ -171,7 +171,11 @@ def kmeans_clustering(segments):
           "davies_bouldin_index": db,
           "calinski_harabasz_score": ch}
     
-    joblib.dump(pipeline, "output/kmeans.pkl")
+    final_output_dir = Path(output_dir)
+    final_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    joblib.dump(scaler, final_output_dir / "scaler.joblib")
+    joblib.dump(kmeans, final_output_dir / "kmeans.joblib")
 
     return segments, ev
 
@@ -182,8 +186,8 @@ def main():
     apply_segment(df_seg, df_emergency)
 
     print("\nGenerating features...")
-    df_seg = generate_feature(df_seg, df_track, df_emergency)
-    df_seg.to_csv("output/df_seg.csv", index=False)
+    df_seg = generate_density_offtrack(df_seg, df_track)
+    df_seg = generate_stuck_sos_rate(df_seg, df_emergency)
 
     print("\nTraining...")
     df_seg, evaluation_metrics = kmeans_clustering(df_seg)
