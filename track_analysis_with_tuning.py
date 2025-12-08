@@ -389,8 +389,11 @@ class TrackAnalyzer:
         # Assign cluster labels
         self.df_seg["cluster"] = self.kmeans.labels_
 
-        joblib.dump(self.scaler, "output/scaler.joblib")
-        joblib.dump(self.kmeans, "output/kmeans.joblib")
+        final_output_dir = Path(output_dir)
+        final_output_dir.mkdir(parents=True, exist_ok=True)
+    
+        joblib.dump(self.scaler, final_output_dir / "scaler.joblib")
+        joblib.dump(self.kmeans, final_output_dir / "kmeans.joblib")
         
         print("Best model applied successfully!")
     
