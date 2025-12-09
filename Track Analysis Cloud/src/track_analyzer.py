@@ -2,7 +2,8 @@
 Track Segmentation and Clustering Analysis
 Analyzes track segments based on geographic and behavioral features
 """
-
+import argparse
+import os
 import pandas as pd
 import numpy as np
 import math
@@ -12,9 +13,6 @@ from sklearn import metrics
 from itertools import product
 import joblib
 from pathlib import Path
-
-output_dir = Path("output")
-output_dir.mkdir(parents=True, exist_ok=True)
 
 class TrackAnalyzer:
     """Main class for track segmentation and clustering analysis"""
@@ -440,35 +438,40 @@ class TrackAnalyzer:
 
 
 def main_with_tuning():
-    """Main execution with hyperparameter tuning"""
+    # 1. SETUP ARGUMENT PARSER (Agar Azure bisa input path folder)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_data", type=str, help="Path to input data folder")
+    parser.add_argument("--output_data", type=str, help="Path to output data folder")
+    args = parser.parse_args()
+
     analyzer = TrackAnalyzer()
     
+    # Update global output_dir agar menunjuk ke path dari Azure
+    global output_dir
+    output_dir = Path(args.output_data)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
     print("="*50)
-    print("TRACK SEGMENTATION AND CLUSTERING WITH TUNING")
+    print(f"Reading data from: {args.input_data}")
+    print(f"Writing output to: {args.output_data}")
     print("="*50)
     
-    # Load and prepare data
+    # 2. LOAD DATA MENGGUNAKAN PATH DARI ARGUMENT
+    # Asumsinya file csv ada di dalam folder input_data yang di-mount Azure
     analyzer.load_data(
-        'data/track_with_elevation.csv',
-        'data/device_track_1.csv',
-        'data/emergency_events.csv'
+        os.path.join(args.input_data, 'track_with_elevation.csv'),
+        os.path.join(args.input_data, 'device_track_1.csv'),
+        os.path.join(args.input_data, 'emergency_events.csv')
     )
+
     analyzer.generate_segments()
     analyzer.map_data_to_segments()
     analyzer.engineer_features()
     
-    # # Option 1: Quick elbow method analysis
-    # print("\n" + "="*50)
-    # print("FINDING OPTIMAL K")
-    # print("="*50)
-    # elbow_results = analyzer.find_optimal_k_elbow(k_range=range(2, 8))
-    
-    # Option 2: Full hyperparameter tuning (may take time)
     print("\n" + "="*50)
     print("HYPERPARAMETER TUNING")
     print("="*50)
     
-    # Define custom parameter grid (smaller for faster execution)
     param_grid = {
         'n_clusters': [3, 4, 5],
         'max_iter': [100, 300],
@@ -479,19 +482,19 @@ def main_with_tuning():
     
     df_results, best_params = analyzer.tune_hyperparameters(param_grid=param_grid)
     
-    # Save tuning results
-    df_results.to_csv("output/tuning_results.csv", index=False)
-    print("\nTuning results saved to output/tuning_results.csv")
+    # 3. SAVE KE OUTPUT PATH DARI AZURE
+    df_results.to_csv(output_dir / "tuning_results.csv", index=False)
+    print(f"\nTuning results saved to {output_dir}/tuning_results.csv")
     
-    # Apply best parameters
     analyzer.apply_best_params(best_params)
     analyzer.evaluate_clustering()
-    analyzer.save_results()
+    
+    # Save final result
+    analyzer.save_results(output_path=output_dir / "df_seg.csv")
     
     print("\n" + "="*50)
     print("TUNING AND ANALYSIS COMPLETE")
     print("="*50)
-
 
 if __name__ == "__main__":
     main_with_tuning()
