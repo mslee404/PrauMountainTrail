@@ -1,8 +1,3 @@
-"""
-Track Segmentation and Clustering Analysis
-Analyzes track segments based on geographic and behavioral features
-"""
-
 import pandas as pd
 import numpy as np
 import math
@@ -13,24 +8,25 @@ from itertools import product
 import joblib
 from pathlib import Path
 
-output_dir = "output"
-
 class TrackAnalyzer:
     """Main class for track segmentation and clustering analysis"""
     
-    def __init__(self):
+    def __init__(self, output_dir="output"):
         self.df_seg = None
         self.scaler = StandardScaler()
         self.kmeans = None
         self.feature_cols = ['slope', 'curvature', 'offtrack_rate', 'density', 'stuck_rate', 'sos_rate']
         self.best_params = None
 
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True) 
+
     def load_data(self, elevation_path, track_path, emergency_path):
         """Load all required datasets"""
         print("Loading data...")
         self.df_elev = pd.read_csv(elevation_path)
-        self.df_track = pd.read_csv(track_path)
-        self.df_emergency = pd.read_csv(emergency_path)
+        self.df_track = track_path
+        self.df_emergency = emergency_path
         print("Data loaded successfully.")
         
     def calculate_haversine_distance(self, lat1, lon1, lat2, lon2):
@@ -235,7 +231,7 @@ class TrackAnalyzer:
         # Default parameter grid
         if param_grid is None:
             param_grid = {
-                'n_clusters': [2, 3, 4, 5, 6],
+                'n_clusters': [3, 4, 5, 6],
                 'max_iter': [100, 300, 500],
                 'n_init': [10, 20, 30],
                 'algorithm': ['lloyd', 'elkan'],
@@ -388,12 +384,6 @@ class TrackAnalyzer:
         
         # Assign cluster labels
         self.df_seg["cluster"] = self.kmeans.labels_
-
-        final_output_dir = Path(output_dir)
-        final_output_dir.mkdir(parents=True, exist_ok=True)
-    
-        joblib.dump(self.scaler, final_output_dir / "scaler.joblib")
-        joblib.dump(self.kmeans, final_output_dir / "kmeans.joblib")
         
         print("Best model applied successfully!")
     
@@ -435,58 +425,23 @@ class TrackAnalyzer:
             'silhouette': silhouettes
         }
     
-    def save_results(self, output_path="output/df_seg.csv"):
+    def save_results(self):
         """Save segmented data with cluster labels"""
-        self.df_seg.to_csv(output_path, index=False)
-        print(f"\nResults saved to {output_path}")
+        self.df_seg.to_csv(self.output_dir / "segmented.csv", index=False)
+        print(f"\nResults saved to {self.output_dir}")
 
-
-def main_with_tuning():
-    """Main execution with hyperparameter tuning"""
-    analyzer = TrackAnalyzer()
-    
-    print("="*50)
-    print("TRACK SEGMENTATION AND CLUSTERING WITH TUNING")
-    print("="*50)
-    
-    # Load and prepare data
-    analyzer.load_data(
-        'data/track_with_elevation.csv',
-        'data/device_track_1.csv',
-        'data/emergency_events.csv'
-    )
-    analyzer.generate_segments()
-    analyzer.map_data_to_segments()
-    analyzer.engineer_features()
-    
-    # # Option 1: Quick elbow method analysis
-    # print("\n" + "="*50)
-    # print("FINDING OPTIMAL K")
-    # print("="*50)
-    # elbow_results = analyzer.find_optimal_k_elbow(k_range=range(2, 8))
-    
-    # Option 2: Full hyperparameter tuning (may take time)
-    print("\n" + "="*50)
-    print("HYPERPARAMETER TUNING")
-    print("="*50)
-    
-    # Define custom parameter grid (smaller for faster execution)
-    
-    df_results, best_params = analyzer.tune_hyperparameters()
-    
-    # Save tuning results
-    df_results.to_csv("output/tuning_results.csv", index=False)
-    print("\nTuning results saved to output/tuning_results.csv")
-    
-    # Apply best parameters
-    analyzer.apply_best_params(best_params)
-    analyzer.evaluate_clustering()
-    analyzer.save_results()
-    
-    print("\n" + "="*50)
-    print("TUNING AND ANALYSIS COMPLETE")
-    print("="*50)
-
-
-if __name__ == "__main__":
-    main_with_tuning()
+    def save_model(self):
+        """Save the trained model and scaler to the output directory"""
+        print(f"\nSaving models to {self.output_dir}...")
+        
+        # 1. Tentukan Nama File
+        model_path = self.output_dir / "kmeans_model.pkl"
+        scaler_path = self.output_dir / "scaler_model.pkl"
+        
+        # 2. Simpan (Dump) objek model ke file tersebut
+        # Kita pakai joblib karena lebih efisien untuk Scikit-Learn daripada pickle biasa
+        joblib.dump(self.kmeans, model_path)
+        joblib.dump(self.scaler, scaler_path)
+        
+        print(f"Model saved: {model_path}")
+        print(f"Scaler saved: {scaler_path}")
