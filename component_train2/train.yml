@@ -1,0 +1,21 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: train_track_analyzer_asli
+display_name: train_track_analyzer
+
+type: command
+is_deterministic: false
+
+inputs:
+  input_data: 
+    type: uri_folder
+  
+outputs:
+  output_data:
+    type: uri_folder
+    
+code: ./train_src
+environment: azureml:track-analysis-env:2
+command: >-
+  python train.py 
+  --input_data ${{inputs.input_data}} 
+  --output_data ${{outputs.output_data}}

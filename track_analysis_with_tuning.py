@@ -388,12 +388,9 @@ class TrackAnalyzer:
         
         # Assign cluster labels
         self.df_seg["cluster"] = self.kmeans.labels_
-
-        final_output_dir = Path(output_dir)
-        final_output_dir.mkdir(parents=True, exist_ok=True)
     
-        joblib.dump(self.scaler, final_output_dir / "scaler.joblib")
-        joblib.dump(self.kmeans, final_output_dir / "kmeans.joblib")
+        joblib.dump(self.scaler, "scaler.joblib")
+        joblib.dump(self.kmeans, "kmeans.joblib")
         
         print("Best model applied successfully!")
     
@@ -435,10 +432,10 @@ class TrackAnalyzer:
             'silhouette': silhouettes
         }
     
-    def save_results(self, output_path="output/df_seg.csv"):
+    def save_results(self, output_path="df_seg.csv"):
         """Save segmented data with cluster labels"""
         self.df_seg.to_csv(output_path, index=False)
-        print(f"\nResults saved to {output_path}")
+        print(f"\nResults saved to")
 
 
 def main_with_tuning():
