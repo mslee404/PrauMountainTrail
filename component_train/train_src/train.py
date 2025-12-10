@@ -16,14 +16,12 @@ def parse_args():
 def main_with_tuning():
     args = parse_args()
 
-    if os.path.exists(args.output_data):
-        shutil.rmtree(args.output_data)
-    os.makedirs(args.output_data, exist_ok=True)
-
     # Setup Paths
     input_root = args.input_data
     # Convert string output path ke Path object
     output_root = args.output_data 
+
+    os.makedirs(output_root, exist_ok=True)
     
     print("="*50)
     print("TRACK SEGMENTATION PIPELINE STARTED")

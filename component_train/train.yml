@@ -10,7 +10,7 @@ inputs:
 outputs:
   output_data:
     type: uri_folder
-    path: azureml://datastores/input_data/paths/output/${{name}}
+    
 code: ./train_src
 environment: azureml:track-analysis-env:2
 command: >-
