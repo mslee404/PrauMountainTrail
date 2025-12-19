@@ -95,6 +95,7 @@ def main_with_tuning():
         # Save Final CSV
         analyzer.save_results()
         analyzer.save_model()
+        analyzer.save_selected_features()
         analyzer.save_metrics(metrics_dict)
         
         print("\n" + "="*50)

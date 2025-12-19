@@ -456,3 +456,13 @@ class TrackAnalyzer:
         
         print(f"Model saved: {model_path}")
         print(f"Scaler saved: {scaler_path}")
+
+    def save_selected_features(self):
+        """Save selected features to a text file"""
+        features_path = self.output_dir / "selected_features.txt"
+        
+        with open(features_path, "w") as f:
+            for feature in self.best_params['features']:
+                f.write(f"{feature}\n")
+        
+        print(f"Selected features saved to: {features_path}")
