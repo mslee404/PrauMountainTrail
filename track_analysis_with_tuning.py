@@ -448,9 +448,9 @@ def main_with_tuning():
     
     # Load and prepare data
     analyzer.load_data(
-        'data/track_with_elevation.csv',
-        'data/device_track_1.csv',
-        'data/emergency_events.csv'
+        'Track Analysis Cloud/data/track_with_elevation.csv',
+        'Track Analysis Cloud/data/device_track_1.csv',
+        'Track Analysis Cloud/data/emergency_events.csv'
     )
     analyzer.generate_segments()
     analyzer.map_data_to_segments()
